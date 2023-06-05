@@ -1,34 +1,60 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
-
-app.Urls.Add("http://localhost:5000");
-
-app.MapGet("/", () => "Hello World!");
-
-app.MapGet("/{cityName}/weather", GetWeatherByCity);
-
-app.Run();
-
-
-Weather GetWeatherByCity(string cityName)
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+ 
+namespace Main_Method
 {
-    app.Logger.LogInformation($"Weather requested for {cityName}.");
-    var weather = new Weather(cityName);
-    return weather;
-}
+    class Program {
+        private const int NUM_TASKS = 1000000;
 
-public record Weather
-{
-    public string City { get; set; }
+        static void Main(string[] args) 
+        {
+            Console.WriteLine(">>>>>>>>> Program Main Enter >>>>>>>>>>>>>");
 
-    public Weather(string city)
-    {
-        City = city;
-        Conditions = "Cloudy";
-        // Temperature here is in celsius degrees, hence the 0-40 range.
-        Temperature = new Random().Next(0,40).ToString();
-    }
+            Task task1 = oneMillionConcurrentTasksUsingTaskDelay(NUM_TASKS);
+            task1.Wait();
+            log("Tasks completed");
 
-    public string Conditions { get; set; }
-    public string Temperature { get; set; }
+            Task task2 = oneMillionConcurrentTasksUsingThreadSleep(NUM_TASKS);
+            task2.Wait();
+            log("Task 2 completed");
+
+            Console.WriteLine(">>>>>>>>> Program Main Exit >>>>>>>>>>>>>");
+
+        }
+
+        static async Task oneMillionConcurrentTasksUsingTaskDelay(int numTasks) {
+            log("Running 1 Million concurrent tasks using async-await and Task.Delay...");
+            List<Task> tasks = new List<Task>();
+            for (int i = 0; i < numTasks; i++)
+            {
+                Task task = Task.Run(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+                });
+                tasks.Add(task);
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        static async Task oneMillionConcurrentTasksUsingThreadSleep(int numTasks) {
+            log("Running 1 Million concurrent tasks using Task.Run and Thread.sleep");
+            List<Task> tasks = new List<Task>();
+            for (int i = 0; i < numTasks; i++)
+            {
+                Task task = Task.Run( () => {
+                    //log("Task sleeping...");
+                    Thread.Sleep(10_000);
+                });
+                tasks.Add(task);
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        static void log(string msg) {
+            DateTime dt = DateTime.Now;
+            Console.WriteLine(dt + " - " + msg);
+        }
+    }                
 }
